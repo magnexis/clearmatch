@@ -24,6 +24,7 @@ export function ChatRoom() {
   const pressTimer = useRef<number | null>(null);
   const wsUrl = useMemo(() => `${location.protocol === "https:" ? "wss" : "ws"}://${location.hostname}:4100/ws?token=${token}`, [token]);
   const otherProfile = conversation?.profiles?.[0];
+  const otherUserId = otherProfile?.userId;
 
   function timestamp(value: string) {
     return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(value));
@@ -104,8 +105,8 @@ export function ChatRoom() {
         <div className="actionRow compact">
           <Tooltip text="Mute notifications for this match without blocking them."><button className="iconButton" onClick={() => { setMuted(!muted); setNotice(!muted ? "Conversation muted" : "Conversation unmuted"); }} aria-label="Mute"><BellOff /></button></Tooltip>
           <Tooltip text="Archive this conversation from your active attention."><button className="iconButton" onClick={() => { setArchived(true); setNotice("Conversation archived"); }} aria-label="Archive"><Archive /></button></Tooltip>
-          <Tooltip text="Send this conversation to the moderation queue for review."><button className="iconButton" onClick={() => api("/reports", { method: "POST", body: JSON.stringify({ reportedUserId: "user-noah", reason: "Conversation concern", details: "Demo report from chat" }) }).then(() => setNotice("Report submitted"))} aria-label="Report"><Flag /></button></Tooltip>
-          <Tooltip text="Block this person and close future contact."><button className="iconButton" onClick={() => api("/block", { method: "POST", body: JSON.stringify({ blockedUserId: "user-noah" }) }).then(() => setNotice("User blocked"))} aria-label="Block"><Ban /></button></Tooltip>
+          <Tooltip text="Send this conversation to the moderation queue for review."><button className="iconButton" disabled={!otherUserId} onClick={() => api("/reports", { method: "POST", body: JSON.stringify({ reportedUserId: otherUserId, reason: "Conversation concern", details: `Reported from chat room ${matchId}` }) }).then(() => setNotice("Report submitted"))} aria-label="Report"><Flag /></button></Tooltip>
+          <Tooltip text="Block this person and close future contact."><button className="iconButton" disabled={!otherUserId} onClick={() => api("/block", { method: "POST", body: JSON.stringify({ blockedUserId: otherUserId }) }).then(() => setNotice("User blocked"))} aria-label="Block"><Ban /></button></Tooltip>
         </div>
       </header>
       {archived && <div className="healthBanner"><strong>Archived</strong><span>This conversation is hidden from your active attention until you return.</span></div>}
