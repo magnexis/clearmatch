@@ -10,7 +10,11 @@ import type { ComplimentCategory, DiscoveryPreferences, Like, Match, MatchQualit
 import { getConversationFade } from "./fadeClient";
 import { behaviorEvents, blocks, compliments, conversationStarters, demoUser, discoveryPreferences, likes, matches, messageReactions, messages, passes, personalityResults, profiles, promptAnswers, promptQuestions, reports, seeMore, userSettings, users } from "./seed";
 
-const jwtSecret = process.env.JWT_SECRET || "local-dev-secret";
+const jwtSecret = process.env.JWT_SECRET;
+if (!jwtSecret) {
+  console.error("JWT_SECRET environment variable is required.");
+  process.exit(1);
+}
 
 export const signupSchema = z.object({
   email: z.string().email(),
