@@ -7,6 +7,7 @@ import { WebSocketServer } from "ws";
 import {
   addMessage,
   addSeeMore,
+  getMatchParticipants,
   blockUser,
   createLike,
   createReport,
@@ -307,6 +308,7 @@ app.get("/api/admin/reports", auth, (_request, response) => {
 });
 
 const wss = new WebSocketServer({ server, path: "/ws" });
+const socketUserMap = new Map<import("ws").WebSocket, string>();
 
 wss.on("connection", (socket, request) => {
   const token = new URL(request.url || "", "http://localhost").searchParams.get("token") || undefined;
@@ -316,21 +318,43 @@ wss.on("connection", (socket, request) => {
     return;
   }
 
+  socketUserMap.set(socket, user.id);
+  socket.on("close", () => socketUserMap.delete(socket));
+
   socket.on("message", (raw) => {
     const event = JSON.parse(raw.toString()) as { type: string; matchId: string; body?: string };
+    const participants = getMatchParticipants(event.matchId);
     if (event.type === "typing") {
-      wss.clients.forEach((client) => client.send(JSON.stringify({ type: "typing", matchId: event.matchId, fromUserId: user.id })));
+      const payload = JSON.stringify({ type: "typing", matchId: event.matchId, fromUserId: user.id });
+      wss.clients.forEach((client) => {
+        const clientUserId = socketUserMap.get(client);
+        if (clientUserId && clientUserId !== user.id && participants.includes(clientUserId)) {
+          client.send(payload);
+        }
+      });
     }
     if (event.type === "message" && event.body) {
       try {
         const message = addMessage(event.matchId, user.id, event.body);
-        wss.clients.forEach((client) => client.send(JSON.stringify({ type: "message", message })));
+        const payload = JSON.stringify({ type: "message", message });
+        wss.clients.forEach((client) => {
+          const clientUserId = socketUserMap.get(client);
+          if (clientUserId && participants.includes(clientUserId)) {
+            client.send(payload);
+          }
+        });
       } catch (error) {
         socket.send(JSON.stringify({ type: "error", error: error instanceof Error ? error.message : "Message failed" }));
       }
     }
     if (event.type === "read") {
-      wss.clients.forEach((client) => client.send(JSON.stringify({ type: "read", matchId: event.matchId, fromUserId: user.id, at: new Date().toISOString() })));
+      const payload = JSON.stringify({ type: "read", matchId: event.matchId, fromUserId: user.id, at: new Date().toISOString() });
+      wss.clients.forEach((client) => {
+        const clientUserId = socketUserMap.get(client);
+        if (clientUserId && clientUserId !== user.id && participants.includes(clientUserId)) {
+          client.send(payload);
+        }
+      });
     }
   });
 });

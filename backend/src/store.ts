@@ -296,6 +296,11 @@ export async function getMatches(userId: string) {
     }));
 }
 
+export function getMatchParticipants(matchId: string): string[] {
+  const match = matches.find((item) => item.id === matchId);
+  return match ? match.users : [];
+}
+
 export function addMessage(matchId: string, fromUserId: string, body: string) {
   const match = matches.find((item) => item.id === matchId && item.users.includes(fromUserId) && !item.blocked);
   if (!match) throw new Error("Messaging unlocks only after a mutual match");
