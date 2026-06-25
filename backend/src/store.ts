@@ -458,9 +458,17 @@ export function trustForUser(userId: string) {
   return buildTrustScore(user, profileForUser(userId));
 }
 
-export function verifyPhoto(userId: string) {
+export function verifyPhoto(userId: string, photoUrl: string) {
   const profile = profileForUser(userId);
-  if (profile) profile.photoVerified = true;
+  if (!profile) throw new Error("Profile not found");
+  if (!photoUrl || typeof photoUrl !== "string" || !photoUrl.startsWith("/uploads/")) {
+    throw new Error("Invalid verification photo. A valid uploaded photo is required.");
+  }
+  const hasProfilePhotos = profile.photos && profile.photos.length > 0 && !profile.photos.every((p) => p === "/avatars/default.svg");
+  if (!hasProfilePhotos) {
+    throw new Error("You must have at least one profile photo before requesting verification.");
+  }
+  profile.photoVerified = true;
   return trustForUser(userId);
 }
 

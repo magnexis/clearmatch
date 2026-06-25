@@ -250,8 +250,12 @@ app.get("/api/trust", auth, (_request, response) => {
   response.json(trustForUser(response.locals.user.id));
 });
 
-app.post("/api/trust/photo-verification", auth, (_request, response) => {
-  response.json(verifyPhoto(response.locals.user.id));
+app.post("/api/trust/photo-verification", auth, (request, response) => {
+  const photoUrl = request.body.photoUrl as string | undefined;
+  if (!photoUrl) {
+    return response.status(400).json({ error: "A photo URL is required for verification. Please submit a verification photo." });
+  }
+  response.json(verifyPhoto(response.locals.user.id, photoUrl));
 });
 
 app.get("/api/analytics/match-quality", auth, (_request, response) => {
