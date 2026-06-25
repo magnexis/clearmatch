@@ -71,6 +71,17 @@ function auth(request: express.Request, response: express.Response, next: expres
   next();
 }
 
+function adminAuth(request: express.Request, response: express.Response, next: express.NextFunction) {
+  auth(request, response, () => {
+    const user = response.locals.user;
+    const adminIds = (process.env.ADMIN_IDS || "").split(",").filter(Boolean);
+    if (!adminIds.includes(user.id)) {
+      return response.status(403).json({ error: "Admin access required" });
+    }
+    next();
+  });
+}
+
 app.get("/api/health", (_request, response) => {
   response.json({ ok: true, app: "ClearMatch" });
 });
@@ -303,7 +314,7 @@ app.post("/api/messages/:messageId/reactions", auth, (request, response) => {
   }
 });
 
-app.get("/api/admin/reports", auth, (_request, response) => {
+app.get("/api/admin/reports", adminAuth, (_request, response) => {
   response.json(moderationQueue());
 });
 
